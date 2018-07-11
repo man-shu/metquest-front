@@ -1,2 +1,2 @@
 # metquest-front
-Web based front-end user interface for Metquest
+Web based front-end user interface for MetQuest
