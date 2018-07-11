@@ -1,0 +1,173 @@
+<html>
+    <head>
+        <title>MetQuest</title>
+       <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+       <meta name="viewport" content = "width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+<style>
+
+.ui-autocomplete-category {
+    font-weight: bold;
+    padding: .2em .4em;
+    margin: .8em 0 .2em;
+    line-height: 1.5;
+  }
+  
+.navbar-brand
+{
+  font-size: 30px !important;
+  color: gray!important;
+}
+</style>
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+   <script>
+  $( function() {
+    var availableTags = {{ mets_in_model | safe }};
+    $.widget( "custom.catcomplete", $.ui.autocomplete, {
+      _create: function() {
+        this._super();
+        this.widget().menu( "option", "items", "> :not(.ui-autocomplete-category)" );
+      },
+      _renderMenu: function( ul, items ) {
+        var that = this,
+          currentCategory = "";
+        $.each( items, function( index, item ) {
+          var li;
+          if ( item.category != currentCategory ) {
+            ul.append( "<li class='ui-autocomplete-category'>" + item.category + "</li>" );
+            currentCategory = item.category;
+          }
+          li = that._renderItemData( ul, item );
+          if ( item.category ) {
+            li.attr( "aria-label", item.category + " : " + item.label );
+          }
+        });
+      }
+    });
+    function split( val ) {
+      return val.split( /,\s*/ );
+    }
+    function extractLast( term ) {
+      return split( term ).pop();
+    }
+ 
+    $( "#source, #target, #seeds" )
+      // don't navigate away from the field on tab when selecting an item
+      .on( "keydown", function( event ) {
+        if ( event.keyCode === $.ui.keyCode.TAB &&
+            $( this ).catcomplete( "instance" ).menu.active ) {
+          event.preventDefault();
+        }
+      })
+      .catcomplete({
+        
+        source: function( request, response ) {
+          // delegate back to autocomplete, but extract the last term
+          response( $.ui.autocomplete.filter(
+            availableTags, extractLast( request.term ) ) );
+        },
+        search: function() {
+        // custom minLength
+        var term = extractLast( this.value );
+        if ( term.length < 3 ) {
+            return false;
+        }
+    },
+        focus: function() {
+          // prevent value inserted on focus
+          return false;
+        },
+        select: function( event, ui ) {
+          var terms = split( this.value );
+          // remove the current input
+          terms.pop();
+          // add the selected item
+          terms.push( ui.item.value );
+          // add placeholder to get the comma-and-space at the end
+          terms.push( "" );
+          this.value = terms.join( "," );
+          return false;
+        }
+      });
+  } );
+  </script>
+ 
+    </head>
+<body>
+<nav class="navbar fixed-top navbar-light bg-light">
+  <a class="navbar-brand" href="{{url_for('inputs')}}">MetQuest</a>
+</nav>
+<br><br><br><br>
+<div class="container">
+{% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+ 
+        {% for message in messages %}
+            {% if "Error" not in message[1]: %}
+                <div class="alert alert-info">
+                 <strong>{{ message[1] }}</strong>
+                </div>
+            {% endif %}
+ 
+            {% if "Error" in message[1]: %}
+                <div class="alert alert-warning">
+                <strong>{{ message[1] }}</strong>
+                </div>
+            {% endif %}
+        {% endfor %}
+            {% endif %}
+        {% endwith %}
+<form class=".form-inline" action="{{url_for('uploader')}}" method="post" role="uploadForm" enctype="multipart/form-data">
+<div class="form-group">
+     <label for="file">Model:</label>
+            <div class="form-row">
+                 <div class="col-11">
+                    <div class="custom-file">
+                      <input type="file" class="custom-file-input" id="customFile" name="file" multiple>
+                          <label class="custom-file-label" for="customFile">
+{% if fnames is defined and fnames %}
+   {% for f in fnames %}
+      {{ f }} 
+   {% endfor %}
+{% else %}
+    <p>Select an XML Model file...</p>
+{% endif %}
+                          </label>
+                    </div>
+                 </div>
+                 <div class="col-1">
+                     <button type="submit" class="btn btn-primary">Upload</button>
+                 </div>
+              </div>
+</div>
+</form>
+  <form class=".form-inline" action="{{url_for('test')}}" method="post" role="mqForm">
+   
+      <div class="form-group">
+ <br>
+ <div class="form-row">
+<div class="col-3">
+<label for="length">Cut-off:</label>
+      <input type="number" min="1" class="form-control" id="length" name="length" placeholder="Enter the pathway length">
+<br></div><div class="col-9">
+<label for="source">Source Metabolites:</label>
+      <input type="text" class="form-control" id="source" name="source" placeholder="Select the Source Metabolites"></div></div>
+      <br>
+      <label for="seeds">Seed Metabolites:</label>
+      <input type="text" class="form-control" id="seeds" name="seeds" placeholder="Select the Seed Metabolites">
+      <br><br>
+      <label for="target">Target Metabolite:</label>
+      <input type="text" class="form-control" id="target" name="target" placeholder="Select the Target Metabolite">
+     <br>
+     <br>
+      
+    <button type="submit" class="btn btn-primary" name="action" value="make_paths">Submit</button>
+  </div>
+</form>
+
+</div>
+</body>
+</html>

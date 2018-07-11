@@ -1,0 +1,91 @@
+<html>
+    <head>
+        <title>MetQuest</title>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+       <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+       <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+       <meta name="viewport" content = "width=device-width, initial-scale=1.0">
+       <script>window.onload = function(){d3.selectAll(".node.rxn")
+ .classed("hidden",false);};
+ $('#home a').on('click', function (e) {
+  e.preventDefault()
+  $(this).tab('show')
+})
+ $('#profile a').on('click', function (e) {
+  e.preventDefault()
+  $(this).tab('show')
+})
+ $('#summ a').on('click', function (e) {
+  e.preventDefault()
+  $(this).tab('show')
+})
+ </script>
+<style>.navbar-brand
+{
+  font-size: 30px !important;
+  color: gray!important;
+}</style>
+    </head>
+<body>
+<nav class="navbar fixed-top navbar-light bg-light">
+  <a class="navbar-brand" href="{{url_for('inputs')}}">MetQuest</a>
+</nav><br><br><br><br><br>
+<div class="container">
+
+     <ul class="nav nav-tabs" id="myTab" role="tablist">
+  <li class="nav-item">
+    <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">Most Different Pathways</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="profile-tab" data-toggle="tab" href="#profile" role="tab" aria-controls="profile" aria-selected="false">Aggregated Pathways</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="summ-tab" data-toggle="tab" href="#summ" role="tab" aria-controls="summ" aria-selected="false">Summary</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="summ-tab" data-toggle="tab" href="#summ" role="tab" aria-controls="summ" aria-selected="false">Knockout</a>
+  </li>
+</ul>
+<div class="tab-content" id="myTabContent">
+  <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">{% for path in pathsHTML %}
+     <br><br>
+       <h4> {{ labels[loop.index0] }} </h4>
+       <form class=".form-inline" action="{{url_for('full1')}}" method="post" target="_blank">
+       <button method="post" type="submit" name="full" value="{{ loop.index0 }}" class="btn btn-link" >Open <i class="fas fa-external-link-alt"></i></button></form>
+              <br> {{path|safe}}
+
+     {% endfor %}</div>
+  <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab">{% for union in pathsUnion %}
+     <br><br>
+       <h4> {{ labelsUnion[loop.index0] }} </h4>
+       <form class=".form-inline" action="{{url_for('full2')}}" method="post" target="_blank">
+       <button method="post" type="submit" name="unFull" value="{{ loop.index0 }}" class="btn btn-link" >Open <i class="fas fa-external-link-alt"></i></button></form>
+       <br> {{union|safe}}
+
+     {% endfor %}</div>
+     <div class="tab-pane fade" id="summ" role="tabpanel" aria-labelledby="profile-tab">
+     <br><br>
+     {% for summ in labelsSummary %}
+       <h4> {{ summ }} </h4>
+       <ul class="list-group">
+  <li class="list-group-item">Number of metabolites in scope :  <strong>{{len_scopes[loop.index0]}}</strong></li>
+  <li class="list-group-item">Target metabolite :  <strong>{{tar_met[loop.index0]}}</strong></li>
+  <li class="list-group-item">Pathway size cutoff :  <strong>{{cut_len}}</strong></li>
+  <li class="list-group-item">Number of all branched pathways found from seed :  <strong>{{all_cnts[loop.index0]}}</strong></li>
+  <li class="list-group-item">Number of all branched pathways from seed whose size <= {{cut_len}} :  <strong>{{cut_cnts[loop.index0]}}</strong></li>
+  <li class="list-group-item">Minimum number of steps to produce :  <strong>{{minstepss[loop.index0]}}</strong></li>
+  <li class="list-group-item">Number of branched pathways from source whose size <= {{cut_len}} :  <strong>{{cut_branched_pathss[loop.index0]}}</strong></li>
+  <li class="list-group-item">No. of cyclic pathways {{tar_met[loop.index0]}} can be produced :  <strong>{{cut_cyclics[loop.index0]}}</strong></li>
+</ul>
+
+<!--{% endfor %}</div>-->
+
+</div>
+
+
+
+</body>
+
+</html>
