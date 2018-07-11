@@ -351,7 +351,6 @@ def test():
     knockForm = Knock(request.form)
     global modids
     if request.method == 'POST':
-    #if request.form.post['action'] == 'make_paths':
        if knockForm.validate():
           global modids
           if len(modids) != 0 :
@@ -379,8 +378,6 @@ def test():
              check = 0
              for i in range(len(tar_met)):
                  all_reactions[tar_met[i]] = []
-                 pred = G.predecessors
-                 succ = G.successors
                  if tar_met[i] in pathways:
                     all_reactions_involved = []
                     for plen in pathways[tar_met[i]]:
