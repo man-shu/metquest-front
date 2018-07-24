@@ -31,5 +31,6 @@ python3 metquest-flask.py
 ```
 or
 ```
+cd metquest-front
 python3 knockout.py
 ```
