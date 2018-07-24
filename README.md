@@ -24,3 +24,12 @@ sudo pip install Flask-WTF
   python setup.py develop
   ```
   * Copy and replace the 'd3flux-master' directory with the one (having the same name) in the 'metquest-front' directory.
+* Change to the 'metquest-front' directory and run either of the 'metquest-flask.py' or 'knockout.py', as follows:
+```
+cd metquest-front
+python3 metquest-flask.py
+```
+or
+```
+python3 knockout.py
+```
