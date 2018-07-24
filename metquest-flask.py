@@ -12,13 +12,16 @@ import webbrowser
 from cobra.io import load_json_model
 from cobra.core import Metabolite, Reaction, Model
 from d3flux import flux_map
+from datetime import datetime
 
 ALLOWED_EXTENSIONS = set(['xml'])
 
 app = Flask(__name__)
 app.config.from_object(__name__)
 app.config['SECRET_KEY'] = '7d441f27d441f27567d441f2b6176a'
-app.config['UPLOAD_PATH'] = '/home/himanshu/Desktop/uploads/'
+app.config['UPLOAD_PATH'] = os.path.join(os.getcwd(), datetime.now().strftime('FILES_%d-%m-%Y_%I:%M:%S'))
+if not os.path.exists(os.path.join(app.config['UPLOAD_PATH'])):
+    os.makedirs(os.path.join(app.config['UPLOAD_PATH']))
 
 class MetQuest(Form):
     length = TextField('Cut-off:', validators=[validators.required()])
@@ -223,12 +226,13 @@ def print_summary(scope, tar_met, pathways, cut_len, cyclic, namemap, src_met, s
                     k = 0
                     r = all_tar2src[tar_met[i]][src_met[j]][k]
                     d = create_pathway(namemap, G, r)
-                    with open('/home/himanshu/Desktop/%s_%s to %s_just one pathway.json'%("_".join(modids), src_met[j], tar_met[i]), 'w') as fp:
+                    jsonFileName = '%s_%s to %s_just one pathway.json'%("_".join(modids), src_met[j], tar_met[i])
+                    with open(os.path.join(app.config['UPLOAD_PATH'], jsonFileName), 'w') as fp:
                         json.dump(d, fp, separators=(',',':'))
-                    mod = cobra.io.json.load_json_model('/home/himanshu/Desktop/%s_%s to %s_just one pathway.json'%("_".join(modids), src_met[j], tar_met[i]))
+                    mod = cobra.io.json.load_json_model(os.path.join(app.config['UPLOAD_PATH'], jsonFileName))
                     page = flux_map(mod, display_name_format=lambda x: str(x.id), figsize=(1024,500),flux_dict={rxn.id: None for rxn in mod.reactions})
                     pathsHTML.append(page)
-                    label  = "%s %s to %s just one pathway"%("_".join(modids), src_met[j], tar_met[i])
+                    label  = jsonFileName
                     labels.append(label)
                     pathsUnion.append(page)
                     labelsUnion.append(label)
@@ -275,9 +279,10 @@ def print_summary(scope, tar_met, pathways, cut_len, cyclic, namemap, src_met, s
                     rUnion.update(all_tar2src[tar_met[i]][src_met[j]][a])
                 rUnion = list(rUnion)
                 dUnion = create_pathway(namemap, G, rUnion)
-                with open('/home/himanshu/Desktop/%s_%s to %s_UNION.json'%("_".join(modids), src_met[j], tar_met[i]), 'w') as fp:
+                jsonFileName = '%s_%s to %s_UNION.json'%("_".join(modids), src_met[j], tar_met[i])
+                with open(os.path.join(app.config['UPLOAD_PATH'], jsonFileName), 'w') as fp:
                         json.dump(dUnion, fp, separators=(',',':'))
-                modUnion = cobra.io.json.load_json_model('/home/himanshu/Desktop/%s_%s to %s_UNION.json'%("_".join(modids), src_met[j], tar_met[i]))
+                modUnion = cobra.io.json.load_json_model(os.path.join(app.config['UPLOAD_PATH'], jsonFileName))
                 solution = modUnion.optimize()
                 a = 0
                 for reacts in modUnion.reactions:
@@ -286,7 +291,7 @@ def print_summary(scope, tar_met, pathways, cut_len, cyclic, namemap, src_met, s
                     a = a+1
                 pageUnion = flux_map(modUnion, display_name_format=lambda x: str(x.id), figsize=(1024,500),flux_dict= solution)
                 pathsUnion.append(pageUnion)
-                labelUnion  = "%s %s to %s UNION"%("_".join(modids), src_met[j], tar_met[i])
+                labelUnion  = jsonFileName
                 labelsUnion.append(labelUnion)
 
                 pred = G.predecessors
@@ -324,12 +329,13 @@ def print_summary(scope, tar_met, pathways, cut_len, cyclic, namemap, src_met, s
                     print('Most different pathway combination found for %s to %s'%(src_met[j],tar_met[i]))
                     r = diff_tar2src[tar_met[i]][src_met[j]][k]
                     d = create_pathway(namemap, G, r)
-                    with open('/home/himanshu/Desktop/%s_%s to %s_%i.json'%("_".join(modids), src_met[j], tar_met[i], k), 'w') as fp:
+                    jsonFileName = '%s_%s to %s_%i.json'%("_".join(modids), src_met[j], tar_met[i], k)
+                    with open(os.path.join(app.config['UPLOAD_PATH'], jsonFileName), 'w') as fp:
                         json.dump(d, fp, separators=(',',':'))
-                    mod = cobra.io.json.load_json_model('/home/himanshu/Desktop/%s_%s to %s_%i.json'%("_".join(modids), src_met[j], tar_met[i], k))
+                    mod = cobra.io.json.load_json_model(os.path.join(app.config['UPLOAD_PATH'], jsonFileName))
                     page = flux_map(mod, display_name_format=lambda x: str(x.id), figsize=(1024,500),flux_dict={rxn.id: None for rxn in mod.reactions})
                     pathsHTML.append(page)
-                    label  = "%s %s to %s %i"%("_".join(modids), src_met[j], tar_met[i], k)
+                    label  = jsonFileName
                     labels.append(label)
     return render_template('combi.html', pathsHTML = pathsHTML, labels = labels, pathsUnion = pathsUnion, labelsUnion = labelsUnion, labelsSummary = labelsSummary, len_scopes = len_scopes, cut_branched_pathss = cut_branched_pathss, all_cnts = all_cnts, cut_cnts = cut_cnts, cut_cyclics = cut_cyclics, minstepss = minstepss, cut_len = cut_len, tar_met = tar_met)
 
@@ -360,7 +366,7 @@ def test():
              for i in range(len(tar_met)):
                  if tar_met[i] == "":
                     del tar_met[i]
-             G, namemap = mq.create_graph("/home/himanshu/Desktop/uploads",len(modids))
+             G, namemap = mq.create_graph(os.path.join(app.config['UPLOAD_PATH']),len(modids))
              print('Graph made')
              pathways, cyclic, scope = mq.find_pathways(G,seed_met,cut_len)
              print('pathways found')
