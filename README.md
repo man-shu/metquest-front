@@ -19,6 +19,7 @@ sudo pip install Flask-WTF
 * Install [d3flux](https://github.com/pstjohn/d3flux), as follows:
   * Download and extract 'd3flux-master.zip' file from [here](https://github.com/pstjohn/d3flux).
   * Change to the extracted 'd3flux-master' directory and setup a development version of the same, as follows:
+  
   ```
   cd d3flux-master
   python setup.py develop
