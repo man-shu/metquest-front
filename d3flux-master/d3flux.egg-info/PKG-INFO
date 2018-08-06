@@ -1,0 +1,11 @@
+Metadata-Version: 1.1
+Name: d3flux
+Version: 0.2.2
+Summary: A d3.js-based metabolic visualization tool for cobrapy
+Home-page: https://github.com/pstjohn/d3flux
+Author: Peter St. John
+Author-email: peter.stjohn@nrel.gov
+License: MIT
+Download-URL: https://github.com/pstjohn/d3flux
+Description: UNKNOWN
+Platform: UNKNOWN

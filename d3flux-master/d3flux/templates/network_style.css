@@ -1,0 +1,41 @@
+.node.rxn {
+  fill: #FFA319;
+}
+
+.node.rxn.hidden {
+  fill: #FFA319;
+  /*stroke: none;
+  stroke-width: 0;*/
+}
+
+.link {
+  fill: none;
+  stroke-linecap: round;
+}
+
+text.nodelabel {
+  font-size: {{ fontsize }}pt;
+  fill: #555;
+  font-family: Arial;
+}
+
+text.nodelabel.cofactor {
+  font-size: {{ cf_fontsize }}pt;
+  fill: #778899;
+}
+
+text.nodelabel.rxn {
+  fill: #A9A9A9;
+  font-size: {{ cf_fontsize }}pt;
+  font-style: italic;
+}
+
+marker.inactive, .node.inactive, text.inactive {
+  fill-opacity: {{ inactive_alpha }};
+}
+
+.link.inactive {
+  stroke-opacity: {{ inactive_alpha }};
+}
+
+
