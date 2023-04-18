@@ -14,7 +14,7 @@ from cobra.core import Metabolite, Reaction, Model
 from d3flux import flux_map
 from datetime import datetime
 
-ALLOWED_EXTENSIONS = set(['xml'])
+ALLOWED_EXTENSIONS = {'xml'}
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -57,51 +57,54 @@ def allowed_file(filename):
 
 @app.route('/uploader', methods = ['GET', 'POST'])
 def uploader():
-   uploadForm = UploadForm(request.form)
-   global modids
-   global fnames
-   modids = []
-   fnames = []
-   if request.method == 'POST' and 'file' in request.files:
-      listof = request.files.getlist('file')
-      if len(listof) == 0:
-         flash('Error : No selected file')
-         print(uploadForm.errors)
-         return render_template('metUpload.html')
-      if len(listof) > 0:
-         mets_in_model = []
-         j = 0
-         lentrack = 0
-         for f in listof:
-             if allowed_file(f.filename):
-                filename = secure_filename(f.filename)
-                fnames.append(filename)
-                f.save(os.path.join(app.config['UPLOAD_PATH'], filename))
-                modl=cobra.io.read_sbml_model(os.path.join(app.config['UPLOAD_PATH'], filename))
-                if modl:
-                   modids.append(modl.id)
-                   for i in range(len(modl.metabolites)):
-                       mets_in_model.append({'label':"", 'value':"", 'category': modl.id})
-                   while j < (lentrack + len(modl.metabolites)):
-                         for metab in modl.metabolites:
-                             mets_in_model[j]['label'] = metab.name + " ( " + metab.id + " )"
-                             mets_in_model[j]['value'] = modl.id + " " + metab.id
-                             j = j+1
-                   lentrack = lentrack + len(modl.metabolites)
+    uploadForm = UploadForm(request.form)
+    global modids
+    global fnames
+    if request.method == 'POST' and 'file' in request.files:
+        listof = request.files.getlist('file')
+        if len(listof) == 0:
+           flash('Error : No selected file')
+           print(uploadForm.errors)
+           return render_template('metUpload.html')
+        if len(listof) > 0:
+            mets_in_model = []
+            j = 0
+            lentrack = 0
+            modids = []
+            fnames = []
+            for f in listof:
+                if allowed_file(f.filename):
+                    filename = secure_filename(f.filename)
+                    fnames.append(filename)
+                    f.save(os.path.join(app.config['UPLOAD_PATH'], filename))
+                    if modl := cobra.io.read_sbml_model(
+                        os.path.join(app.config['UPLOAD_PATH'], filename)
+                    ):
+                        modids.append(modl.id)
+                        mets_in_model.extend(
+                            {'label': "", 'value': "", 'category': modl.id}
+                            for _ in range(len(modl.metabolites))
+                        )
+                        while j < (lentrack + len(modl.metabolites)):
+                            for metab in modl.metabolites:
+                                mets_in_model[j]['label'] = f"{metab.name} ( {metab.id} )"
+                                mets_in_model[j]['value'] = f"{modl.id} {metab.id}"
+                                j = j+1
+                        lentrack = lentrack + len(modl.metabolites)
+                    else:
+                        flash(f'Error : Model {filename} not valid. Upload a .xml model file.')
+                        print(uploadForm.errors)
+                        return render_template('metUpload.html')
                 else:
-                   flash('Error : Model %s not valid. Upload a .xml model file.'%(filename))
-                   print(uploadForm.errors)
-                   return render_template('metUpload.html')
-             else:
-                flash('Error : Model %s not valid. Upload a .xml model file.'%(f.filename))
-                print(uploadForm.errors)
-                return render_template('metUpload.html')
-         flash('Model Uploaded')
-         return render_template('metUpload.html', mets_in_model = mets_in_model, fnames = fnames)
-   else:
-      flash('Error : No file selected')
-      print(uploadForm.errors)
-      return render_template('metUpload.html')
+                    flash(f'Error : Model {f.filename} not valid. Upload a .xml model file.')
+                    print(uploadForm.errors)
+                    return render_template('metUpload.html')
+            flash('Model Uploaded')
+            return render_template('metUpload.html', mets_in_model = mets_in_model, fnames = fnames)
+    else:
+        flash('Error : No file selected')
+        print(uploadForm.errors)
+        return render_template('metUpload.html')
 
 
 @app.route('/full1', methods = ['GET', 'POST'])
@@ -128,13 +131,11 @@ def create_pathway(namemap, G, r):
 
     cofacs = ["ppi_m","pi_m","adp_m","atp_m","nh4_c","h_p","h_c","atp_c","adp_c","nadph_c","nadp_c","nad_c","nadh_c","h2o_m","co2_c","h_m","ade_c","amp_c","h2o_c","pi_c","pi_p","ade_p"]
     global modids
-    rxn = []
-    for a in range(len(r)):
-        rxn.append(namemap[r[a]])
+    rxn = [namemap[r[a]] for a in range(len(r))]
     mets = []
     d = {"reactions":[{"id":"R1","name":"","metabolites":{},"lower_bound":0,"upper_bound":1000,"gene_reaction_rule":"","notes":{"map_info":{"reversibility":False,"hidden":False,"cofactors":{}}}}],"metabolites":[{"id":"A","name":"","compartment":"","notes":{"map_info":{"display_name":"A"}}}],"genes":[],"id":"simple_model","compartments":{},"notes":{"map_info":{}}}
 
-    for a in range(len(r)-1):
+    for _ in range(len(r)-1):
         d["reactions"].append({"id":"R1","name":"","metabolites":{},"lower_bound":0,"upper_bound":1000,"gene_reaction_rule":"","notes":{"map_info":{"flux":9,"reversibility":False,"hidden":False,"cofactors":{}}}})
 
     for a in range(len(rxn)):
@@ -142,28 +143,26 @@ def create_pathway(namemap, G, r):
         d["reactions"][a]["notes"]["map_info"]["display_name"] = rxn[a]
         preds = list(G.predecessors(r[a]))
         succs = list(G.successors(r[a]))
-        for b in range(len(preds)):
-            mets.append(preds[b])
-            d["reactions"][a]["metabolites"][preds[b].replace(" ", "")] =-1
-            if len(preds[b].split(" ",1)) == 1:
-                if preds[b].split(" ",1)[0] in cofacs:
-                    d["reactions"][a]["notes"]["map_info"]["cofactors"][preds[b].replace(" ", "")] ={}
-            else :
-                if preds[b].split(" ",1)[1] in cofacs:
-                    d["reactions"][a]["notes"]["map_info"]["cofactors"][preds[b].replace(" ", "")] ={}
-        for c in range(len(succs)):
-            mets.append(succs[c])
-            d["reactions"][a]["metabolites"][succs[c].replace(" ", "")] =1
-            if len(succs[c].split(" ",1)) == 1:
-                if succs[c].split(" ",1)[0] in cofacs:
-                    d["reactions"][a]["notes"]["map_info"]["cofactors"][succs[c].replace(" ", "")] ={}
-            else :
-                if succs[c].split(" ",1)[1] in cofacs:
-                    d["reactions"][a]["notes"]["map_info"]["cofactors"][succs[c].replace(" ", "")] ={}
+        for pred in preds:
+            mets.append(pred)
+            d["reactions"][a]["metabolites"][pred.replace(" ", "")] = -1
+            if len(pred.split(" ", 1)) == 1:
+                if pred.split(" ", 1)[0] in cofacs:
+                    d["reactions"][a]["notes"]["map_info"]["cofactors"][pred.replace(" ", "")] = {}
+            elif pred.split(" ", 1)[1] in cofacs:
+                d["reactions"][a]["notes"]["map_info"]["cofactors"][pred.replace(" ", "")] = {}
+        for succ in succs:
+            mets.append(succ)
+            d["reactions"][a]["metabolites"][succ.replace(" ", "")] = 1
+            if len(succ.split(" ", 1)) == 1:
+                if succ.split(" ", 1)[0] in cofacs:
+                    d["reactions"][a]["notes"]["map_info"]["cofactors"][succ.replace(" ", "")] = {}
+            elif succ.split(" ", 1)[1] in cofacs:
+                d["reactions"][a]["notes"]["map_info"]["cofactors"][succ.replace(" ", "")] = {}
 
     mets = list(set(mets))
 
-    for a in range(len(mets)-1):
+    for _ in range(len(mets)-1):
         d["metabolites"].append({"id":"A","name":"","compartment":"","notes":{"map_info":{"display_name":"A"}}})
 
     for a in range(len(mets)):
@@ -176,10 +175,9 @@ def create_pathway(namemap, G, r):
             if mets[a].split(" ",1)[0] in cofacs:
                 d["metabolites"][a]["notes"]["map_info"]["display_name"] = mets[a].split(" ",1)[1]
                 d["metabolites"][a]["notes"]["map_info"]["hidden"] =True
-        else:
-            if mets[a].split(" ",1)[1] in cofacs:
-                d["metabolites"][a]["notes"]["map_info"]["display_name"] = mets[a].split(" ",1)[1]
-                d["metabolites"][a]["notes"]["map_info"]["hidden"] =True
+        elif mets[a].split(" ",1)[1] in cofacs:
+            d["metabolites"][a]["notes"]["map_info"]["display_name"] = mets[a].split(" ",1)[1]
+            d["metabolites"][a]["notes"]["map_info"]["hidden"] =True
     return d
 
 def print_summary(scope, tar_met, pathways, cut_len, cyclic, namemap, src_met, seed_met, G, all_tar2src, diff_tar2src):

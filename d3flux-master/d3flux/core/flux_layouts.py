@@ -87,10 +87,11 @@ def flux_map(cobra_model,
     # build cofactor metabolites from strings
     cobra_metabolites = []
     if excluded_metabolites:
-        compartments = set((m.compartment for m in cobra_model.metabolites))
+        compartments = {m.compartment for m in cobra_model.metabolites}
         metabolite_list = [
-            cf + '_' + co for cf, co in itertools.product(
-                excluded_metabolites, compartments)] + excluded_metabolites
+            f'{cf}_{co}'
+            for cf, co in itertools.product(excluded_metabolites, compartments)
+        ] + excluded_metabolites
         for cofactor in metabolite_list:
             try:
                 cobra_metabolites += [
@@ -113,16 +114,21 @@ def flux_map(cobra_model,
     excluded_reactions = set(cobra_rxns)
 
     if excluded_compartments:
-        met_compartments = set((m for m in cobra_model.metabolites.query(
-            lambda x: set(x.compartment).intersection(
-                set(excluded_compartments)), None)))
+        met_compartments = set(
+            cobra_model.metabolites.query(
+                lambda x: set(x.compartment).intersection(
+                    set(excluded_compartments)
+                ),
+                None,
+            )
+        )
         excluded_metabolites |= met_compartments
 
-        # Do I want to redo this not to include excluded metabolites?
-        # rxn_compartments = set((r for r in cobra_model.reactions.query(
-        #     lambda x: set(x.compartments).intersection(
-        #         set(excluded_compartments)), None)))
-        # excluded_reactions |= rxn_compartments
+            # Do I want to redo this not to include excluded metabolites?
+            # rxn_compartments = set((r for r in cobra_model.reactions.query(
+            #     lambda x: set(x.compartments).intersection(
+            #         set(excluded_compartments)), None)))
+            # excluded_reactions |= rxn_compartments
 
     # for reaction in excluded_reactions:
     #     reaction.notes['map_info'] = {'hidden': True}
@@ -147,8 +153,9 @@ def flux_map(cobra_model,
                     'reversibility': bool(reaction.reversibility)}
 
         # Hide reactions if all of their products or reactants are hidden
-        if (all([is_hidden(met) for met in reaction.reactants]) or
-                all([is_hidden(met) for met in reaction.products])):
+        if all(is_hidden(met) for met in reaction.reactants) or all(
+            is_hidden(met) for met in reaction.products
+        ):
 
             try:
                 reaction.notes['map_info']['hidden'] = True
@@ -190,10 +197,7 @@ def create_model_json(cobra_model, flux_dict=None):
 
     """
     def get_flux(reaction):
-        if flux_dict is not None:
-            return flux_dict[reaction.id]
-        else:
-            return reaction.flux
+        return flux_dict[reaction.id] if flux_dict is not None else reaction.flux
 
     # Add flux info
     for reaction in cobra_model.reactions:
@@ -202,7 +206,7 @@ def create_model_json(cobra_model, flux_dict=None):
         # knocked out reaction
         if reaction.lower_bound == reaction.upper_bound == 0:
             reaction.notes['map_info']['group'] = 'ko'
-            
+
             # Delete the flux key, if it exists
             try:
                 del reaction.notes['map_info']['flux']
@@ -222,9 +226,11 @@ def create_model_json(cobra_model, flux_dict=None):
             # cobrapy doesn't track contexted changes to the notes field. So if
             # a reaction is set to the 'ko' group, reset it if it doens't match
             # the bounds requirements
-            if 'group' in reaction.notes['map_info']:
-                if reaction.notes['map_info']['group'] == 'ko':
-                    del reaction.notes['map_info']['group']
+            if (
+                'group' in reaction.notes['map_info']
+                and reaction.notes['map_info']['group'] == 'ko'
+            ):
+                del reaction.notes['map_info']['group']
 
 
 
@@ -237,8 +243,13 @@ def create_model_json(cobra_model, flux_dict=None):
             pass
 
         try:
-            carried_flux = sum([abs(get_flux(r) * r.metabolites[metabolite]) for r in
-                                metabolite.reactions]) / 2
+            carried_flux = (
+                sum(
+                    abs(get_flux(r) * r.metabolites[metabolite])
+                    for r in metabolite.reactions
+                )
+                / 2
+            )
             if carried_flux > 1E-8:
                 metabolite.notes['map_info']['flux'] = carried_flux
             else:
@@ -309,16 +320,8 @@ def render_model(cobra_model, background_template=None, custom_css=None,
 
     modeljson = create_model_json(cobra_model, flux_dict)
 
-    if not hide_unused:
-        hide_unused = "false"
-    else:
-        hide_unused = "true"
-
-    if not hide_unused_cofactors:
-        hide_unused_cofactors = "false"
-    else:
-        hide_unused_cofactors = "true"
-
+    hide_unused = "true" if hide_unused else "false"
+    hide_unused_cofactors = "true" if hide_unused_cofactors else "false"
     # Handle custom CSS
     if not custom_css:
         custom_css = ''
@@ -338,7 +341,7 @@ def render_model(cobra_model, background_template=None, custom_css=None,
     # Initialize the jinja templates
     env = Environment(loader=FileSystemLoader(
         os.path.join(os.path.dirname(d3flux.__file__), 'templates')))
-    
+
     template_css = env.get_template('network_style.css')
     template_html = env.get_template('output_template.html')
     template_js = env.get_template('d3flux.js')
