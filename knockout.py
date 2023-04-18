@@ -19,7 +19,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 from datetime import datetime
 
-ALLOWED_EXTENSIONS = set(['xml'])
+ALLOWED_EXTENSIONS = {'xml'}
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -63,54 +63,56 @@ def allowed_file(filename):
 
 @app.route('/uploader', methods = ['GET', 'POST'])
 def uploader():
-   uploadForm = UploadForm(request.form)
-   global modids
-   global fnames
-   global cobra_mods
-   cobra_mods = []
-   modids = []
-   fnames = []
-   if request.method == 'POST' and 'file' in request.files:
-      listof = request.files.getlist('file')
-      if len(listof) == 0:
-         flash('Error : No selected file')
-         print(uploadForm.errors)
-         return render_template('knockUpload.html')
-      if len(listof) > 0:
-         rxn_in_model = []
-         j = 0
-         lentrack = 0
-         for f in listof:
-             if allowed_file(f.filename):
-                filename = secure_filename(f.filename)
-                fnames.append(filename)
-                f.save(os.path.join(app.config['UPLOAD_PATH'], filename))
-                modl=cobra.io.read_sbml_model(os.path.join(app.config['UPLOAD_PATH'], filename))
-                cobra_mods.append(modl)
-                if modl:
-                   modids.append(modl.id)
-                   for i in range(len(modl.reactions)):
-                       rxn_in_model.append({'label':"", 'value':"", 'category': modl.id})
-                   while j < (lentrack + len(modl.reactions)):
-                         for reacts in modl.reactions:
-                             rxn_in_model[j]['label'] = str(reacts.name) + " ( " + str(reacts.id) + " )"
-                             rxn_in_model[j]['value'] = str(modl.id) + " " + str(reacts.id)
-                             j = j+1
-                   lentrack = lentrack + len(modl.reactions)
+    uploadForm = UploadForm(request.form)
+    global modids
+    global fnames
+    global cobra_mods
+    if request.method == 'POST' and 'file' in request.files:
+        listof = request.files.getlist('file')
+        if len(listof) == 0:
+           flash('Error : No selected file')
+           print(uploadForm.errors)
+           return render_template('knockUpload.html')
+        if len(listof) > 0:
+            rxn_in_model = []
+            j = 0
+            lentrack = 0
+            cobra_mods = []
+            modids = []
+            fnames = []
+            for f in listof:
+                if allowed_file(f.filename):
+                    filename = secure_filename(f.filename)
+                    fnames.append(filename)
+                    f.save(os.path.join(app.config['UPLOAD_PATH'], filename))
+                    modl=cobra.io.read_sbml_model(os.path.join(app.config['UPLOAD_PATH'], filename))
+                    cobra_mods.append(modl)
+                    if modl:
+                        modids.append(modl.id)
+                        rxn_in_model.extend(
+                            {'label': "", 'value': "", 'category': modl.id}
+                            for _ in range(len(modl.reactions))
+                        )
+                        while j < (lentrack + len(modl.reactions)):
+                            for reacts in modl.reactions:
+                                rxn_in_model[j]['label'] = f"{str(reacts.name)} ( {str(reacts.id)} )"
+                                rxn_in_model[j]['value'] = f"{str(modl.id)} {str(reacts.id)}"
+                                j = j+1
+                        lentrack = lentrack + len(modl.reactions)
+                    else:
+                        flash(f'Error : Model {filename} not valid. Upload a .xml model file.')
+                        print(uploadForm.errors)
+                        return render_template('knockUpload.html')
                 else:
-                   flash('Error : Model %s not valid. Upload a .xml model file.'%(filename))
-                   print(uploadForm.errors)
-                   return render_template('knockUpload.html')
-             else:
-                flash('Error : Model %s not valid. Upload a .xml model file.'%(f.filename))
-                print(uploadForm.errors)
-                return render_template('knockUpload.html')
-         flash('Model Uploaded')
-         return render_template('knockUpload.html', rxn_in_model = rxn_in_model, fnames = fnames)
-   else:
-      flash('Error : No file selected')
-      print(uploadForm.errors)
-      return render_template('knockUpload.html')
+                    flash(f'Error : Model {f.filename} not valid. Upload a .xml model file.')
+                    print(uploadForm.errors)
+                    return render_template('knockUpload.html')
+            flash('Model Uploaded')
+            return render_template('knockUpload.html', rxn_in_model = rxn_in_model, fnames = fnames)
+    else:
+        flash('Error : No file selected')
+        print(uploadForm.errors)
+        return render_template('knockUpload.html')
 
 @app.route("/test", methods=['GET', 'POST'])
 def test():

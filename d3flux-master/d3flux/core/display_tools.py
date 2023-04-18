@@ -10,7 +10,7 @@ common_ox_cofactors = ['nad_c', 'nadp_c', 'q8_c']
 
 def redox_summary(cobra_model, tol=1E-8, ox_cofactors=None):
 
-    if ox_cofactors == None: ox_cofactors = common_ox_cofactors
+    if ox_cofactors is None: ox_cofactors = common_ox_cofactors
     elif not ox_cofactors: return pd.Series(), pd.Series()
 
     redox_series = reduce(lambda x, y: x.add(y, fill_value=0), (
